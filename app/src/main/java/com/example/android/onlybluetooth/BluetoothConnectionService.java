@@ -136,9 +136,60 @@ public class BluetoothConnectionService {
             //This is a blocking call and will only return one
             //a successful connection or an exception
             mmSocket.connect();
+
+            Log.d(TAG,"run: ConnectThread connected.");
             } catch (IOException e){
                 //Close the socket
+                try{
+                    mmSocket.close();
+                    Log.d(TAG, "run: Closed Socket.");
+                }catch (IOException e1){
+                    Log.e(TAG, "mConnectThread: run: Unable to close connection in socket " + e1.getMessage());
+                }
+                Log.d(TAG, "run: ConnectThread: Could not connect to UUID");
+            }
+
+            connected(mmSocket,mmDevice);
+        }
+        public void cancel(){
+            try{
+                Log.d(TAG,"cancel: Closing Client Socket.");
+                mmSocket.close();
+            }catch (IOException e){
+                Log.e(TAG,"cancel: close() of mmSocket in ConnectThread failed. " + e.getMessage());
             }
         }
+    }
+    /**
+     * Start the chat service. Specifically, start AcceptThread to begin a
+     * session in listening (server) mode. Called by the Activity onResume()
+     */
+    public synchronized void start(){
+        Log.d(TAG, "start");
+
+        //Cancel any thread attempting to make a connection (so we start fresh)
+        if(mConnectThread != null){
+            mConnectThread.cancel();
+            mConnectThread = null;
+        }
+        if (mInsecureAcceptThread == null){
+            mInsecureAcceptThread.start();
+        }
+    }
+
+    /**
+     * AcceptThread starts and sits waiting for a connection.
+     * Then ConnectThread starts and attempts to make a connection with other device's
+     * AcceptThread
+     */
+
+    public void startClient(BluetoothDevice device, UUID uUid){
+        Log.d(TAG, "startClient: Started.");
+
+        //initprogress dialog
+        mProgressDialog = ProgressDialog.show(mContext,"Connecting Bluetooth"
+                                ,"Please Wait...",true);
+
+        mConnectThread.start();
     }
 }
