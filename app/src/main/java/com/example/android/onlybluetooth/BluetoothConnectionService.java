@@ -8,7 +8,9 @@
 
 package com.example.android.onlybluetooth;
 
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
@@ -29,6 +31,11 @@ public class BluetoothConnectionService {
     Context mContext;
 
     private AcceptThread mInsecureAcceptThread;
+
+    private ConnectThread mConnectThread;
+    private BluetoothDevice mmDevice;
+    private UUID deviceUUID;
+    ProgressDialog mProgressDialog;
 
     public BluetoothConnectionService(Context context) {
         mContext = context;
@@ -59,6 +66,7 @@ public class BluetoothConnectionService {
 
 
         //Run thread begins, accept thread will 'hold' in this method until something connects to our socket
+        //RUN METHOD IS AUTOMATICALLY CALLED IN A GIVEN THREAD, NO NEED TO BE MANUALLY CALLED
         public void run(){
             Log.d(TAG,"run: AcceptThread Running.");
 
@@ -89,5 +97,48 @@ public class BluetoothConnectionService {
             }
         }
 
+    }
+
+    /**
+     * This thread runs while attempting to make an outgoing connection with a device. It runs straight through;
+     * the connection either succeeds or fails
+     */
+    private class ConnectThread extends Thread{
+        private BluetoothSocket mmSocket; //Socket for the incoming connected device?
+
+        public ConnectThread(BluetoothDevice device, UUID uuid){
+            Log.d(TAG,"ConnectThread: started.");
+            mmDevice = device;
+            deviceUUID = uuid;
+        }
+
+        public void run(){
+            BluetoothSocket tmp = null;
+            Log.i(TAG, "RUN mConnectThread");
+
+            //Get a BluetoothSocket for a connection with the
+            //given Bluetooth device
+
+            try{
+                Log.d(TAG,"ConnectThread: Trying to create InsecureRfcommSocket using UUID: "
+                    +MY_UUID_INSECURE);
+                tmp = mmDevice.createRfcommSocketToServiceRecord(deviceUUID);
+            } catch(IOException e){
+                Log.e(TAG,"ConnectThread: Could not create InsecureRfcommSocket " + e.getMessage());
+            }
+
+            mmSocket = tmp;
+
+            //Always cancel discovery because it will slow down a connection
+            mBluetoothAdapter.cancelDiscovery();
+
+            try{
+            //This is a blocking call and will only return one
+            //a successful connection or an exception
+            mmSocket.connect();
+            } catch (IOException e){
+                //Close the socket
+            }
+        }
     }
 }
