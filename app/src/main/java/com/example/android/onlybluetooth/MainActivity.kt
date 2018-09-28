@@ -26,7 +26,11 @@ class MainActivity : AppCompatActivity() {
     var mBluetoothAdapter : BluetoothAdapter? = null
 
     /**
-     * BroadcastReceiver waits for incoming intent from the bluetooth adapter, and logs the current state
+     * BroadcastReceivers waits for incoming intent from the bluetooth adapter, and logs the current state
+     *
+     * BR1 -- Logs BT Adapter On/Off state changes
+     *
+     * BR2 -- Logs BT Adapter Discoverability/Connection state changes
      */
     private val mBroadcastReceiver1 = object : BroadcastReceiver() {
 
@@ -49,6 +53,28 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private val mBroadcastReceiver2 = object : BroadcastReceiver() {
+
+        override fun onReceive(context: Context, intent: Intent) {         //Function onReceive is a default member function of the BroadcastReceiver class
+            val action: String = intent.action
+            //When discovery finds a device
+            if(action == BluetoothAdapter.ACTION_SCAN_MODE_CHANGED){
+                val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,BluetoothAdapter.ERROR)
+
+                when(state){
+                    BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE->{ Log.d(tag,"mBroadcastReceiver2: Discoverability Enabled")}
+                    BluetoothAdapter.SCAN_MODE_CONNECTABLE->{Log.d(tag,"mBroadcastReceiver2: Discoverability Disabled. Able to receive connections.")}
+                    BluetoothAdapter.SCAN_MODE_NONE->{Log.d(tag,"mBroadcastReceiver2: Discoverability Disabled. Unable to receive connections.")}
+                    BluetoothAdapter.STATE_CONNECTING->{Log.d(tag,"mBroadcastReceiver2: connecting... ")}
+                    BluetoothAdapter.STATE_CONNECTED->{Log.d(tag,"mBroadcastReceiver2: Connected.")}
+
+                }
+            }
+        }
+
+
+    }
+
 
     override fun onDestroy(){
         Log.d(tag,"onDestroy: called.")
@@ -60,7 +86,7 @@ class MainActivity : AppCompatActivity() {
     protected override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        var button = findViewById<Button>(R.id.btnONOFF)
+
 
         //Gets this phones default adapter
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
@@ -71,6 +97,21 @@ class MainActivity : AppCompatActivity() {
                 enableDisableBT()
 
         }
+
+        btnEnableDisable_Discoverable.setOnClickListener{
+                Log.d(tag,"onClick: btnEnableDisable_Discoverable: Making device discoverable for 300 seconds.")
+
+                var discoverableIntent : Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
+                discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                startActivity(discoverableIntent)
+
+                var intentFilter  = IntentFilter(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED)
+                registerReceiver(mBroadcastReceiver2,intentFilter)
+
+
+        }
+
+
     }
 
     fun enableDisableBT(){
