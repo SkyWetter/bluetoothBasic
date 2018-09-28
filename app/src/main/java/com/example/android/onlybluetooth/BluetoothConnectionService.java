@@ -22,10 +22,9 @@ import java.io.IOException;
 import java.util.UUID;
 
 public class BluetoothConnectionService {
+
     private static final String TAG = "BluetoothConnectionServ";
-
     private static final String appName = "MYAPP";
-
     private static final UUID MY_UUID_INSECURE =
             UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
 
@@ -33,19 +32,18 @@ public class BluetoothConnectionService {
     Context mContext;
 
     private AcceptThread mInsecureAcceptThread;
-
     private ConnectThread mConnectThread;
     private BluetoothDevice mmDevice;
     private UUID deviceUUID;
     ProgressDialog mProgressDialog;
-
     public ConnectedThread mConnectedThread;
-
 
 
     public BluetoothConnectionService(Context context) {
         mContext = context;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+
     }
 
     //Accept thread mInsecureAcceptThread is initiated and waits for something to try to connect to it
@@ -72,7 +70,7 @@ public class BluetoothConnectionService {
 
 
         //Run thread begins, accept thread will 'hold' in this method until something connects to our socket
-        //RUN METHOD IS AUTOMATICALLY CALLED IN A GIVEN THREAD, NO NEED TO BE MANUALLY CALLED
+        //Run method is a member function of Thread class, which activates automatically after thread creation
         public void run(){
             Log.d(TAG,"run: AcceptThread Running.");
 

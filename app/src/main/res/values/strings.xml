@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">onlyBlueTooth</string>
+    <string name="discoverableBtnText">Enable Discoverable</string>
+    <string name="onOffBtnText">ON/OFF</string>
 </resources>
