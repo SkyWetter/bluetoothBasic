@@ -3,4 +3,7 @@
     <string name="btn_discoverable_text">Enable Discoverable</string>
     <string name="btn_bluetoothOnOff_text">ON/OFF</string>
     <string name="btn_discover_text">Discover</string>
+    <string name="btn_startConnection_text">Start Connection</string>
+    <string name="editText_editText_hint">Enter Text Here</string>
+    <string name="btn_send_text">Send</string>
 </resources>

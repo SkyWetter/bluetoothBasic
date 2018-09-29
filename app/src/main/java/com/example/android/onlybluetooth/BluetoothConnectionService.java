@@ -24,7 +24,7 @@ import java.util.UUID;
 public class BluetoothConnectionService {
 
     private static final String TAG = "BluetoothConnectionServ";
-    private static final String appName = "MYAPP";
+    private static final String appName = "Info send";
     private static final UUID MY_UUID_INSECURE =
             UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
 
@@ -36,12 +36,13 @@ public class BluetoothConnectionService {
     private BluetoothDevice mmDevice;
     private UUID deviceUUID;
     ProgressDialog mProgressDialog;
-    public ConnectedThread mConnectedThread;
+    private ConnectedThread mConnectedThread;
 
 
     public BluetoothConnectionService(Context context) {
         mContext = context;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        start();
 
 
     }
@@ -180,6 +181,7 @@ public class BluetoothConnectionService {
             mConnectThread = null;
         }
         if (mInsecureAcceptThread == null){
+            mInsecureAcceptThread = new AcceptThread();
             mInsecureAcceptThread.start();
         }
     }
@@ -190,13 +192,14 @@ public class BluetoothConnectionService {
      * AcceptThread
      */
 
-    public void startClient(BluetoothDevice device, UUID uUid){
+    public void startClient(BluetoothDevice device, UUID uuid){
         Log.d(TAG, "startClient: Started.");
 
         //initprogress dialog
         mProgressDialog = ProgressDialog.show(mContext,"Connecting Bluetooth"
                                 ,"Please Wait...",true);
 
+        mConnectThread = new ConnectThread(device,uuid);
         mConnectThread.start();
     }
 
@@ -213,7 +216,12 @@ public class BluetoothConnectionService {
             OutputStream tmpOut = null;
 
             //dismiss the progressdialog when connection is established
-            mProgressDialog.dismiss();
+            try {
+                mProgressDialog.dismiss();
+            } catch(NullPointerException e){
+                e.printStackTrace();
+            }
+
 
             try {
                 tmpIn = mmSocket.getInputStream();
@@ -248,6 +256,12 @@ public class BluetoothConnectionService {
         //Call this from the main activity to send data to the remote device */
         public void write(byte[] bytes){
             String text = new String(bytes, Charset.defaultCharset());
+            Log.d(TAG,"write: Writing to outputstream: " + text);
+            try{
+                mmOutStream.write(bytes);
+            }catch (IOException e){
+                Log.e(TAG,"write: Error writing to output stream. " + e.getMessage());
+            }
         }
 
         /* Call this from the main activity to shutdown the connection */

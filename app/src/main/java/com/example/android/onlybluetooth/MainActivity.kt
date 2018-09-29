@@ -14,21 +14,25 @@ import android.os.PersistableBundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
-import android.widget.Button
 import kotlinx.android.synthetic.main.activity_main.*
 import android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED
 import android.bluetooth.BluetoothDevice
 import android.os.Build
-import android.widget.ListView
+import android.widget.*
+import java.nio.charset.Charset
+import java.util.*
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(),AdapterView.OnItemClickListener {
     private val tag = "MainActivityDebug"  //Tag for debug
 
     var mBluetoothAdapter : BluetoothAdapter? = null
     var mBTDevices = mutableListOf<BluetoothDevice>();
     var mDeviceListAdapter: DeviceListAdapter? = null
     var lvNewDevices : ListView? = null
+    var mBTDevice : BluetoothDevice? = null
+    val MY_UUID_INSECURE = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66")
+    var mBluetoothConnection : BluetoothConnectionService? = null
 
     /**
      * BroadcastReceivers waits for incoming intent from the bluetooth adapter, and logs the current state
@@ -54,8 +58,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
-
     }
 
     private val mBroadcastReceiver2 = object : BroadcastReceiver() {
@@ -97,11 +99,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val mBroadcastReceiver4 = object : BroadcastReceiver(){
+        override fun onReceive(context: Context, intent: Intent) {
+            val action: String = intent.action
+
+            if(action == BluetoothDevice.ACTION_BOND_STATE_CHANGED){
+                var mDevice : BluetoothDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                //3 cases
+                //case 1: bonded already
+                if(mDevice.bondState==BluetoothDevice.BOND_BONDED){
+                    Log.d(tag,"BroadcastReceiver: BOND_BONDED")
+                    //inside BroadcastReceiver4
+                    mBTDevice = mDevice
+                }
+                //case 2: creating a bond
+                if(mDevice.bondState == BluetoothDevice.BOND_BONDING){
+                    Log.d(tag,"BroadcastReceiver: BOND_BONDING")
+
+                }
+                //case 3: breaking a bond
+                if(mDevice.bondState == BluetoothDevice.BOND_NONE){
+                    Log.d(tag,"BroadcastReceiver: BOND_NONE")
+                }
+            }
+        }
+    }
+
 
     override fun onDestroy(){
         Log.d(tag,"onDestroy: called.")
         super.onDestroy()
         unregisterReceiver(mBroadcastReceiver1)
+        unregisterReceiver(mBroadcastReceiver2)
+        unregisterReceiver(mBroadcastReceiver3)
+        unregisterReceiver(mBroadcastReceiver4)
+        //mBluetoothAdapter.cancelDiscovery()
     }
 
 
@@ -109,10 +141,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         lvNewDevices = findViewById(R.id.lvNewDevices)
+        val etSend:EditText = findViewById<EditText>(R.id.editText)
 
+
+        //Broadcasts when bond state changes (ie: pairing)
+        var filter : IntentFilter = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+        registerReceiver(mBroadcastReceiver4,filter)
 
         //Gets this phones default adapter
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        lvNewDevices!!.onItemClickListener = this@MainActivity
 
         btnONOFF.setOnClickListener{
 
@@ -159,10 +197,28 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        btnSend.setOnClickListener{
+            var bytes: ByteArray = etSend.getText().toString().toByteArray(Charset.defaultCharset())
+            mBluetoothConnection!!.write(bytes)
+        }
+        /**
+         * Start connection onClick -- app will fail and crash if it hasn't paired first
+         */
+        btnStartConnection.setOnClickListener{
+            startBTConnection(mBTDevice!!,MY_UUID_INSECURE)
+        }
 
     }
 
+    /**
+     * Starting chat service method
+     */
 
+    fun startBTConnection(device : BluetoothDevice, uuid : UUID){
+        Log.d(tag,"startBTConnection: Initializing RFCOM Bluetooth Connection.")
+
+        mBluetoothConnection!!.startClient(device,uuid)
+    }
 
     fun enableDisableBT(){
         if(mBluetoothAdapter == null){
@@ -206,6 +262,29 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    override fun onItemClick(adapterView: AdapterView<*>, view : View,i: Int, l: Long){
+        //first cancel discovery because its very memory intensive
+        mBluetoothAdapter!!.cancelDiscovery()
+
+        Log.d(tag,"onItemClick: You Clicked on a device.")
+        var deviceName : String = mBTDevices[i].name
+        var deviceAddress : String = mBTDevices[i].address
+
+        Log.d(tag, "onItemClick: deviceName = $deviceName")
+        Log.d(tag, "onItemClick: deviceName = $deviceAddress")
+
+        //create the bond
+        //NOTE: Requires API 17+
+        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2){
+            Log.d(tag,"Trying to pair with $deviceName")
+            mBTDevices[i].createBond()
+
+            mBTDevice = mBTDevices[i]
+            Log.d(tag,"COOL BOY")
+            mBluetoothConnection =  BluetoothConnectionService(this@MainActivity)
+        }
+
+    }
 
 
 }
