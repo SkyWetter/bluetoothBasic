@@ -3,6 +3,7 @@
 
 package com.example.android.onlybluetooth
 
+import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -17,13 +18,17 @@ import android.widget.Button
 import kotlinx.android.synthetic.main.activity_main.*
 import android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED
 import android.bluetooth.BluetoothDevice
+import android.os.Build
+import android.widget.ListView
 
 
 class MainActivity : AppCompatActivity() {
     private val tag = "MainActivityDebug"  //Tag for debug
 
-
     var mBluetoothAdapter : BluetoothAdapter? = null
+    var mBTDevices = mutableListOf<BluetoothDevice>();
+    var mDeviceListAdapter: DeviceListAdapter? = null
+    var lvNewDevices : ListView? = null
 
     /**
      * BroadcastReceivers waits for incoming intent from the bluetooth adapter, and logs the current state
@@ -75,6 +80,23 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private val mBroadcastReceiver3 = object : BroadcastReceiver(){
+
+        override fun onReceive(context: Context, intent: Intent){
+            val action: String = intent.action
+            Log.d(tag,"onReceive: ACTION FOUND")
+            //When discovery finds a device
+            if(action == BluetoothDevice.ACTION_FOUND){
+                var device : BluetoothDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                mBTDevices.add(device)
+                Log.d(tag,"onReceive: " + device.name + ": " + device.address)
+                mDeviceListAdapter = DeviceListAdapter(context,R.layout.device_adapter_view,mBTDevices)
+                lvNewDevices!!.adapter = mDeviceListAdapter
+
+            }
+        }
+    }
+
 
     override fun onDestroy(){
         Log.d(tag,"onDestroy: called.")
@@ -86,6 +108,7 @@ class MainActivity : AppCompatActivity() {
     protected override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        lvNewDevices = findViewById(R.id.lvNewDevices)
 
 
         //Gets this phones default adapter
@@ -111,8 +134,35 @@ class MainActivity : AppCompatActivity() {
 
         }
 
+        btnDiscover.setOnClickListener{
+            Log.d(tag,"btnDiscover: Looking for unpaired devices.")
+
+            if(mBluetoothAdapter!!.isDiscovering){
+                mBluetoothAdapter!!.cancelDiscovery()
+                Log.d(tag,"btnDiscover: Cancelling discovery.")
+
+                /** Required permission check for any API > Android Lollipop*/
+                checkBTPermissions()
+
+                mBluetoothAdapter!!.startDiscovery()
+                var discoverDevicesIntent = IntentFilter(BluetoothDevice.ACTION_FOUND)
+                registerReceiver(mBroadcastReceiver3, discoverDevicesIntent)
+            }
+            if(!mBluetoothAdapter!!.isDiscovering){
+
+                //Check BT permission in manifest
+                checkBTPermissions()
+
+                mBluetoothAdapter!!.startDiscovery()
+                var discoverDevicesIntent = IntentFilter(BluetoothDevice.ACTION_FOUND)
+                registerReceiver(mBroadcastReceiver3, discoverDevicesIntent)
+            }
+        }
+
 
     }
+
+
 
     fun enableDisableBT(){
         if(mBluetoothAdapter == null){
@@ -135,5 +185,27 @@ class MainActivity : AppCompatActivity() {
 
         }
     }
+
+    /**
+     * This method is required for all deices running API23+
+     * Android must programmatically check the permission for bluetooth.
+     * Putting the proper permissions in the manifest is not enough.
+     */
+
+    private fun checkBTPermissions(){
+        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP){
+            var permissionCheck = this.checkSelfPermission("Manifest.permission.ACCESS_FINE_LOCATION")
+            permissionCheck += this.checkSelfPermission("Manifest.permission.ACCESS_COARSE_LOCATION")
+            if(permissionCheck !=0){
+
+                this.requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION),1001)
+            }else{
+                Log.d(tag,"checkBTPermissions: No need to check permissions. SDK version < LOLLIPOP.")
+            }
+        }
+    }
+
+
+
 
 }
