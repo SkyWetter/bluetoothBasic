@@ -63,6 +63,7 @@ class MainActivity : AppCompatActivity(),AdapterView.OnItemClickListener {
     private val mBroadcastReceiver2 = object : BroadcastReceiver() {
 
         override fun onReceive(context: Context, intent: Intent) {         //Function onReceive is a default member function of the BroadcastReceiver class
+
             val action: String = intent.action
             //When discovery finds a device
             if(action == BluetoothAdapter.ACTION_SCAN_MODE_CHANGED){
@@ -85,8 +86,9 @@ class MainActivity : AppCompatActivity(),AdapterView.OnItemClickListener {
     private val mBroadcastReceiver3 = object : BroadcastReceiver(){
 
         override fun onReceive(context: Context, intent: Intent){
-            val action: String = intent.action
             Log.d(tag,"onReceive: ACTION FOUND")
+            val action: String = intent.action
+
             //When discovery finds a device
             if(action == BluetoothDevice.ACTION_FOUND){
                 var device : BluetoothDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
@@ -280,7 +282,7 @@ class MainActivity : AppCompatActivity(),AdapterView.OnItemClickListener {
             mBTDevices[i].createBond()
 
             mBTDevice = mBTDevices[i]
-            Log.d(tag,"COOL BOY")
+
             mBluetoothConnection =  BluetoothConnectionService(this@MainActivity)
         }
 

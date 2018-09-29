@@ -80,14 +80,16 @@ public class BluetoothConnectionService {
             //This is a blocking call and will only return on a successful connection or an exception
             Log.d(TAG, "run: RFCOM server socket start...");
 
-
+                Log.d(TAG,"run: Waiting to accept mmServerSocket");
                 socket = mmServerSocket.accept();  //<<--- This is where thread waits until connection is made
+                Log.d(TAG,"run: mmServerSocket Accepted");
             } catch(IOException e) {
                 Log.e(TAG,"AcceptThread: IOException: " + e.getMessage());
             }
 
             if(socket != null){  //If we have something in the socket
                 connected(socket,mmDevice);  //connect to s
+                Log.d(TAG,"run: Something in the socket");
             }
 
             Log.i(TAG,"End mAcceptThread");
@@ -127,7 +129,9 @@ public class BluetoothConnectionService {
             try{
                 Log.d(TAG,"ConnectThread: Trying to create InsecureRfcommSocket using UUID: "
                     +MY_UUID_INSECURE);
+
                 tmp = mmDevice.createRfcommSocketToServiceRecord(deviceUUID);
+                Log.d(TAG,"WHAT IS THE ESP'S UUID?" + deviceUUID);
             } catch(IOException e){
                 Log.e(TAG,"ConnectThread: Could not create InsecureRfcommSocket " + e.getMessage());
             }
